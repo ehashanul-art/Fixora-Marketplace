@@ -27,7 +27,10 @@ export function ProductCard({
     <div className="bg-white border border-slate-200 rounded-lg overflow-hidden hover:shadow-lg transition group">
       {/* Product Image */}
       <Link href={`/products/${id}`}>
-        <div className="relative w-full aspect-square bg-slate-100 overflow-hidden">
+        <div
+          className="relative w-full aspect-square bg-slate-100 overflow-hidden"
+          data-image-source={image}
+        >
           <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center group-hover:from-slate-200 group-hover:to-slate-300 transition">
             <span className="text-4xl">📦</span>
           </div>
