@@ -1,4 +1,8 @@
-export default function AdminDashboard() {
+import { requireRole } from "@/lib/auth/guards";
+
+export default async function AdminDashboard() {
+  await requireRole(["admin"]);
+
   const stats = [
     { label: "Total Products", value: "1,234", icon: "📦" },
     { label: "Total Orders", value: "567", icon: "📋" },

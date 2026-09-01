@@ -1,6 +1,8 @@
 import { MainLayout } from "@/components/layout/MainLayout";
+import { requireAuthenticatedUser } from "@/lib/auth/guards";
 import type { ReactNode } from "react";
 
-export default function CustomerLayout({ children }: { children: ReactNode }) {
+export default async function CustomerLayout({ children }: { children: ReactNode }) {
+  await requireAuthenticatedUser();
   return <MainLayout>{children}</MainLayout>;
 }

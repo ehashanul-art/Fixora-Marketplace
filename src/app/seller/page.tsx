@@ -1,4 +1,8 @@
-export default function SellerDashboard() {
+import { requireRole } from "@/lib/auth/guards";
+
+export default async function SellerDashboard() {
+  await requireRole(["seller"]);
+
   const stats = [
     { label: "My Products", value: "45", icon: "📦" },
     { label: "Pending Orders", value: "12", icon: "📋" },
