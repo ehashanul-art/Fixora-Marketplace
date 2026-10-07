@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCloudinary } from "@/lib/cloudinary";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/supabase/profile";
 
 export const runtime = "nodejs";
 
@@ -27,13 +27,12 @@ function uploadBuffer(buffer: Buffer, folder: string) {
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
+    const { profile, error } = await getCurrentProfile();
+    if (error || !profile) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+    if (profile.role !== "admin" && profile.role !== "seller") {
+      return NextResponse.json({ error: "Staff access required" }, { status: 403 });
     }
 
     const formData = await request.formData();

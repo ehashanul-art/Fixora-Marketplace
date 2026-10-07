@@ -7,8 +7,9 @@ Day 01 establishes Supabase Auth, a protected `profiles` table, Next.js Supabase
 1. Create a Supabase project.
 2. In Project Settings > API, copy the project URL and anon/publishable key into `.env.local`.
 3. Open the Supabase SQL Editor and run `supabase/migrations/202608190001_profiles_foundation.sql`.
-4. In Authentication > Providers, enable Email. Choose whether email confirmation is required for the environment.
-5. Add the local and deployed callback URLs in Authentication > URL Configuration for password reset redirects.
+4. Apply the remaining marketplace migrations in filename order, including `202609160005_marketplace_customer_order_security.sql`.
+5. In Authentication > Providers, enable Email. Choose whether email confirmation is required for the environment.
+6. Add the local and deployed callback URLs in Authentication > URL Configuration for password reset redirects.
 
 Only `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are shared with the frontend. Never use a service-role key in browser code.
 
@@ -36,6 +37,9 @@ RLS is enabled on `public.profiles`.
 
 RLS is the security boundary. Frontend role checks are only for presentation.
 
+- In the current single-marketplace model, `seller` is trusted internal Fixora staff, not an external vendor role. Admins and sellers may use the shared marketplace management workspace; customers may not.
+- Customer order-item reads use `customer_safe_order_items`. The underlying `order_items.buy_price` snapshot remains intact but is not selectable by authenticated clients. Internal staff can read historical costs only through the role-gated `staff_order_items` view.
+
 ## Promoting the First Admin
 
 After the owner has registered the account, run this exact statement in the Supabase SQL Editor while signed in as an authorized project operator:
@@ -57,9 +61,9 @@ Create a Cloudinary product environment and keep assets under:
 - `fixora/brands`
 - `fixora/users`
 
-`POST /api/uploads/image` is a Day 01 proof-of-concept route. It accepts multipart field `file`, allows JPEG/PNG/WebP only, limits files to 5 MB, restricts folder names to the four namespaces above, and returns Cloudinary's `secure_url` and `public_id`.
+`POST /api/uploads/image` accepts multipart field `file`, allows JPEG/PNG/WebP only, limits files to 5 MB, restricts folder names to the four namespaces above, and returns Cloudinary's `secure_url` and `public_id`. Server-side authorization permits only authenticated admin/seller staff; customers and unauthenticated requests are rejected.
 
-The route uses the server-only Cloudinary API secret. It is intentionally not a complete authenticated product uploader. Before production use, require an authenticated admin/seller policy, add content inspection and image dimension checks, and persist the returned public ID with the owning record.
+The route uses the server-only Cloudinary API secret. Product-image removal deletes the database record and then attempts Cloudinary deletion only when a stored `public_id` belongs to `fixora/products/`. Older or manually linked images without a managed public ID cannot be safely deleted automatically. Category records currently store only `image_url`, so category asset cleanup is not implemented.
 
 ## Environment
 

@@ -1,3 +1,5 @@
+import "server-only";
+
 import { v2 as cloudinary } from "cloudinary";
 
 let configured = false;
@@ -21,4 +23,26 @@ export function getCloudinary() {
   }
 
   return cloudinary;
+}
+
+export async function deleteManagedProductImage(publicId: string): Promise<boolean> {
+  const managedPrefix = "fixora/products/";
+  if (!publicId.startsWith(managedPrefix) || publicId.length === managedPrefix.length) {
+    return false;
+  }
+
+  const response: unknown = await getCloudinary().uploader.destroy(publicId, {
+    resource_type: "image",
+  });
+
+  if (
+    response &&
+    typeof response === "object" &&
+    "result" in response &&
+    (response.result === "ok" || response.result === "not found")
+  ) {
+    return true;
+  }
+
+  throw new Error("Cloudinary did not confirm product image deletion.");
 }

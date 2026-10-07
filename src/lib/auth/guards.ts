@@ -27,6 +27,8 @@ export async function requireRole(allowedRoles: Array<"customer" | "seller" | "a
     redirect("/login");
   }
 
+  // In the current single-marketplace model, sellers are trusted Fixora staff,
+  // not external vendors with separately owned products.
   if (!allowedRoles.includes(profile.role)) {
     if (profile.role === "admin") {
       redirect("/admin");
