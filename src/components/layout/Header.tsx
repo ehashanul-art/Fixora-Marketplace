@@ -1,25 +1,67 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { Menu, X, Search, User, Heart, ShoppingCart } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import {
+  Menu,
+  X,
+  Search,
+  User,
+  Heart,
+  ShoppingCart,
+  LogOut,
+} from "lucide-react";
+import { signOut } from "@/features/auth/auth";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { hasSupabasePublicEnv } from "@/lib/supabase/env";
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!hasSupabasePublicEnv()) {
+      return;
+    }
+
+    const supabase = createSupabaseBrowserClient();
+
+    supabase.auth.getSession().then(({ data }) => {
+      setIsLoggedIn(Boolean(data.session));
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(Boolean(session));
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      router.push("/");
+      router.refresh();
+    } catch {
+      router.push("/");
+    }
+  };
+
+  const accountHref = isLoggedIn ? "/account" : "/login";
 
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-      {/* Desktop Header */}
       <div className="hidden md:block">
         <div className="container mx-auto px-4 md:px-6">
-          {/* Top Section: Logo and Search */}
           <div className="py-4 flex items-center justify-between gap-4">
-            {/* Logo */}
             <Link href="/" className="flex items-center gap-2">
               <div className="text-2xl font-bold text-slate-900">Fixora</div>
             </Link>
 
-            {/* Search Bar */}
             <div className="flex-1 max-w-md">
               <div className="relative">
                 <input
@@ -31,14 +73,15 @@ export function Header() {
               </div>
             </div>
 
-            {/* Right Actions */}
             <div className="flex items-center gap-6">
               <Link
-                href="/login"
+                href={accountHref}
                 className="flex items-center gap-2 text-slate-700 hover:text-slate-900"
               >
                 <User className="w-5 h-5" />
-                <span className="hidden lg:inline text-sm">Account</span>
+                <span className="hidden lg:inline text-sm">
+                  {isLoggedIn === null ? "Account" : isLoggedIn ? "Account" : "Login"}
+                </span>
               </Link>
               <Link
                 href="/wishlist"
@@ -54,10 +97,19 @@ export function Header() {
                 <ShoppingCart className="w-5 h-5" />
                 <span className="hidden lg:inline text-sm">Cart</span>
               </Link>
+              {isLoggedIn && (
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="flex items-center gap-2 text-slate-700 hover:text-slate-900"
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span className="hidden lg:inline text-sm">Logout</span>
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Navigation */}
           <nav className="py-3 flex gap-6 border-t border-slate-200">
             <Link
               href="/products"
@@ -81,7 +133,6 @@ export function Header() {
         </div>
       </div>
 
-      {/* Mobile Header */}
       <div className="md:hidden">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="text-xl font-bold text-slate-900">
@@ -105,7 +156,6 @@ export function Header() {
           </div>
         </div>
 
-        {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="border-t border-slate-200 bg-white">
             <div className="px-4 py-4 space-y-3">
@@ -135,11 +185,20 @@ export function Header() {
                 Wishlist
               </Link>
               <Link
-                href="/login"
+                href={accountHref}
                 className="block py-2 text-sm font-medium text-slate-700"
               >
-                Account
+                {isLoggedIn ? "Account" : "Login"}
               </Link>
+              {isLoggedIn && (
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="block w-full py-2 text-left text-sm font-medium text-slate-700"
+                >
+                  Logout
+                </button>
+              )}
               <Link
                 href="/seller"
                 className="block py-2 text-sm font-medium text-slate-700"

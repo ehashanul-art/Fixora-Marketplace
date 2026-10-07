@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function WishlistPage() {
   return (
     <div className="w-full">
@@ -12,12 +14,12 @@ export default function WishlistPage() {
           <p className="text-slate-600 mb-6">
             Add items to your wishlist to save them for later
           </p>
-          <a
+          <Link
             href="/products"
             className="inline-block bg-slate-900 text-white px-6 py-3 rounded-lg font-semibold hover:bg-slate-800 transition"
           >
             Browse Products
-          </a>
+          </Link>
         </div>
       </div>
     </div>

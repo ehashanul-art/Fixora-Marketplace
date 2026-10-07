@@ -1,11 +1,18 @@
-export default function AccountPage() {
+import { requireAuthenticatedUser } from "@/lib/auth/guards";
+
+export default async function AccountPage() {
+  const profile = await requireAuthenticatedUser();
+
+  if (!profile) {
+    return null;
+  }
+
   return (
     <div className="w-full">
       <div className="container mx-auto px-4 md:px-6 py-8">
         <h1 className="text-3xl md:text-4xl font-bold mb-8">My Account</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Account Menu */}
           <div className="md:col-span-1">
             <div className="bg-white border border-slate-200 rounded-lg p-6">
               <div className="space-y-2">
@@ -28,7 +35,6 @@ export default function AccountPage() {
             </div>
           </div>
 
-          {/* Profile Content */}
           <div className="md:col-span-2">
             <div className="bg-white border border-slate-200 rounded-lg p-6">
               <h2 className="text-2xl font-bold mb-6 text-slate-900">
@@ -39,22 +45,24 @@ export default function AccountPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
-                      First Name
+                      Full Name
                     </label>
                     <input
                       type="text"
+                      value={profile.full_name ?? ""}
                       disabled
                       className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-600"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Last Name
+                      Role
                     </label>
                     <input
                       type="text"
+                      value={profile.role}
                       disabled
-                      className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-600"
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-600 capitalize"
                     />
                   </div>
                 </div>
@@ -65,6 +73,7 @@ export default function AccountPage() {
                   </label>
                   <input
                     type="email"
+                    value={profile.id}
                     disabled
                     className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-600"
                   />
@@ -76,6 +85,7 @@ export default function AccountPage() {
                   </label>
                   <input
                     type="tel"
+                    value={profile.phone ?? ""}
                     disabled
                     className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-600"
                   />
