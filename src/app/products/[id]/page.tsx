@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getProductBySlug, getProductInventory } from "@/lib/marketplace/data";
+import { AddToCartSection } from "@/components/product/AddToCartSection";
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -11,6 +12,13 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   const stock = await getProductInventory(product.id);
   const images = product.product_images;
+  const isOutOfStock = stock.state === "out_of_stock";
+  const stockLabel = stock.state.replaceAll("_", " ");
+  const stockClass = stock.state === "in_stock"
+    ? "bg-emerald-100 text-emerald-700"
+    : stock.state === "low_stock"
+      ? "bg-amber-100 text-amber-700"
+      : "bg-slate-100 text-slate-600";
 
   return (
     <div className="container mx-auto px-4 py-12 md:px-6">
@@ -30,14 +38,11 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           {(product.brand || product.model) && <p className="mt-3 text-sm text-slate-500">{[product.brand, product.model].filter(Boolean).join(" · ")}</p>}
           <div className="mt-5 flex items-center gap-3">
             <span className="text-2xl font-bold text-slate-900">${product.sell_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${stock.state === "in_stock" ? "bg-emerald-100 text-emerald-700" : stock.state === "low_stock" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>{stock.state.replaceAll("_", " ")}</span>
+            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${stockClass}`}>{stockLabel}</span>
           </div>
           {product.description && <p className="mt-6 text-base leading-7 text-slate-600">{product.description}</p>}
           {product.warranty_months !== null && <p className="mt-4 text-sm text-slate-600">Warranty: {product.warranty_months} months</p>}
-          <div className="mt-8 flex flex-wrap gap-3">
-            <button disabled={stock.state === "out_of_stock"} className="rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">{stock.state === "out_of_stock" ? "Out of stock" : "Add to cart"}</button>
-            <button className="rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-50">Save to wishlist</button>
-          </div>
+          <AddToCartSection productId={product.id} isOutOfStock={isOutOfStock} />
         </div>
       </div>
     </div>

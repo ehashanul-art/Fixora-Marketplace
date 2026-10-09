@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, ShoppingCart } from "lucide-react";
+import { Heart } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { PublicProduct, StockState } from "@/lib/types/marketplace";
+import { AddToCartButton } from "./AddToCartButton";
 
 interface ProductCardProps {
   product: PublicProduct;
@@ -15,6 +17,7 @@ export function ProductCard({
   product,
   stockState,
 }: ProductCardProps) {
+  const router = useRouter();
   const [isWishlisted, setIsWishlisted] = useState(false);
   const primaryImage = product.product_images.find((image) => image.is_primary) ?? product.product_images[0];
   const stockLabel = stockState.replaceAll("_", " ");
@@ -23,6 +26,7 @@ export function ProductCard({
     : stockState === "low_stock"
       ? "bg-amber-100 text-amber-700"
       : "bg-slate-100 text-slate-600";
+  const isOutOfStock = stockState === "out_of_stock";
 
   return (
     <div className="bg-white border border-slate-200 rounded-lg overflow-hidden hover:shadow-lg transition group">
@@ -75,10 +79,11 @@ export function ProductCard({
               {isWishlisted ? "Wishlisted" : "Wishlist"}
             </span>
           </button>
-          <button disabled={stockState === "out_of_stock"} className="flex-1 flex items-center justify-center gap-2 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition disabled:cursor-not-allowed disabled:opacity-50">
-            <ShoppingCart className="w-4 h-4" />
-            <span className="text-sm">Add</span>
-          </button>
+          <AddToCartButton
+            productId={product.id}
+            disabled={isOutOfStock}
+            onSuccess={() => router.refresh()}
+          />
         </div>
       </div>
     </div>

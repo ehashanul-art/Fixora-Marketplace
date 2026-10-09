@@ -16,7 +16,11 @@ import { signOut } from "@/features/auth/auth";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { hasSupabasePublicEnv } from "@/lib/supabase/env";
 
-export function Header() {
+interface HeaderProps {
+  cartCount?: number;
+}
+
+export function Header({ cartCount = 0 }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const router = useRouter();
@@ -92,10 +96,15 @@ export function Header() {
               </Link>
               <Link
                 href="/cart"
-                className="flex items-center gap-2 text-slate-700 hover:text-slate-900"
+                className="flex items-center gap-2 text-slate-700 hover:text-slate-900 relative"
               >
                 <ShoppingCart className="w-5 h-5" />
                 <span className="hidden lg:inline text-sm">Cart</span>
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-slate-900 text-white text-xs font-medium w-5 h-5 rounded-full flex items-center justify-center">
+                    {cartCount > 99 ? "99+" : cartCount}
+                  </span>
+                )}
               </Link>
               {isLoggedIn && (
                 <button
@@ -140,8 +149,13 @@ export function Header() {
           </Link>
 
           <div className="flex items-center gap-4">
-            <Link href="/cart">
+            <Link href="/cart" className="relative">
               <ShoppingCart className="w-5 h-5 text-slate-700" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-slate-900 text-white text-xs font-medium w-5 h-5 rounded-full flex items-center justify-center">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
             </Link>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

@@ -1,6 +1,7 @@
 import { requireRole } from "@/lib/auth/guards";
 import { deleteManagedProductImage } from "@/lib/cloudinary";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/supabase/profile";
 import type {
   Category,
   ProductFilters,
@@ -15,6 +16,8 @@ import type {
   ProductUpdateInput,
   ProductWriteInput,
   PublicProduct,
+  CartItem,
+  CartItemWithProduct,
 } from "@/lib/types/marketplace";
 
 const PUBLIC_PRODUCT_SELECT = `
@@ -477,4 +480,261 @@ export async function removeProductImage(productId: string, imageId: string) {
     console.error("Cloudinary product image cleanup failed", { imageId });
     throw new Error("The image record was removed, but its Cloudinary asset could not be deleted.");
   }
+}
+
+async function getAuthenticatedCustomerId(): Promise<string> {
+  const { profile, error } = await getCurrentProfile();
+  if (error || !profile) {
+    throw new Error("Not authenticated");
+  }
+  return profile.id;
+}
+
+function getCartProductSelect(): string {
+  return `
+    id,
+    category_id,
+    name,
+    slug,
+    sku,
+    short_description,
+    description,
+    sell_price,
+    compare_at_price,
+    brand,
+    model,
+    warranty_months,
+    is_active,
+    is_featured,
+    created_at,
+    updated_at,
+    product_images (
+      id,
+      product_id,
+      image_url,
+      public_id,
+      alt_text,
+      sort_order,
+      is_primary,
+      created_at
+    )
+  `;
+}
+
+export async function getCart(): Promise<CartItemWithProduct[]> {
+  const customerId = await getAuthenticatedCustomerId();
+  const supabase = await createSupabaseServerClient();
+
+  const { data: cartItems, error: cartError } = await supabase
+    .from("cart_items")
+    .select("id, customer_id, product_id, quantity, created_at, updated_at")
+    .eq("customer_id", customerId);
+
+  throwIfError(cartError);
+
+  if (!cartItems || cartItems.length === 0) {
+    return [];
+  }
+
+  const productIds = cartItems.map((item) => item.product_id);
+
+  const { data: products, error: productsError } = await supabase
+    .from("customer_safe_products")
+    .select(getCartProductSelect())
+    .in("id", productIds);
+
+  throwIfError(productsError);
+
+  const productMap = new Map<
+    string,
+    PublicProduct
+  >(
+    ((products ?? []) as unknown as Array<Omit<PublicProduct, "sell_price"> & { sell_price: string | number }>).map((p) => [
+      p.id,
+      normalizeProduct(p),
+    ])
+  );
+
+  return cartItems
+    .filter((item) => {
+      const product = productMap.get(item.product_id);
+      return product?.is_active === true;
+    })
+    .map((item) => ({
+      id: item.id,
+      customer_id: item.customer_id,
+      product_id: item.product_id,
+      quantity: item.quantity,
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+      product: productMap.get(item.product_id)!,
+    })) as CartItemWithProduct[];
+}
+
+export async function getCartCount(): Promise<number> {
+  const customerId = await getAuthenticatedCustomerId();
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("cart_items")
+    .select("quantity")
+    .eq("customer_id", customerId);
+
+  throwIfError(error);
+
+  return (data ?? []).reduce((sum, item) => sum + item.quantity, 0);
+}
+
+export async function addToCart(productId: string, quantity: number): Promise<CartItem> {
+  if (!Number.isInteger(quantity) || quantity <= 0) {
+    throw new Error("Quantity must be a positive integer");
+  }
+
+  const customerId = await getAuthenticatedCustomerId();
+  const supabase = await createSupabaseServerClient();
+
+  const { data: product, error: productError } = await supabase
+    .from("customer_safe_products")
+    .select("id")
+    .eq("id", productId)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  throwIfError(productError);
+
+  if (!product) {
+    throw new Error("Product not found or not available");
+  }
+
+  const { data: inventory, error: inventoryError } = await supabase
+    .from("inventory")
+    .select("quantity, reserved_quantity")
+    .eq("product_id", productId)
+    .maybeSingle();
+
+  throwIfError(inventoryError);
+
+  const available = inventory ? inventory.quantity - inventory.reserved_quantity : 0;
+
+  const { data: existingItem, error: existingError } = await supabase
+    .from("cart_items")
+    .select("id, quantity")
+    .eq("customer_id", customerId)
+    .eq("product_id", productId)
+    .maybeSingle();
+
+  throwIfError(existingError);
+
+  const newTotalQuantity = (existingItem?.quantity ?? 0) + quantity;
+
+  if (newTotalQuantity > available) {
+    throw new Error("Requested quantity exceeds available stock");
+  }
+
+  if (existingItem) {
+    const { data, error } = await supabase
+      .from("cart_items")
+      .update({ quantity: newTotalQuantity })
+      .eq("id", existingItem.id)
+      .eq("customer_id", customerId)
+      .select("id, customer_id, product_id, quantity, created_at, updated_at")
+      .single();
+
+    throwIfError(error);
+    return data as CartItem;
+  } else {
+    const { data, error } = await supabase
+      .from("cart_items")
+      .insert({ customer_id: customerId, product_id: productId, quantity })
+      .select("id, customer_id, product_id, quantity, created_at, updated_at")
+      .single();
+
+    throwIfError(error);
+    return data as CartItem;
+  }
+}
+
+export async function updateCartItem(cartItemId: string, quantity: number): Promise<CartItem> {
+  if (!Number.isInteger(quantity) || quantity <= 0) {
+    throw new Error("Quantity must be a positive integer");
+  }
+
+  const customerId = await getAuthenticatedCustomerId();
+  const supabase = await createSupabaseServerClient();
+
+  const { data: cartItem, error: cartError } = await supabase
+    .from("cart_items")
+    .select("id, customer_id, product_id")
+    .eq("id", cartItemId)
+    .eq("customer_id", customerId)
+    .maybeSingle();
+
+  throwIfError(cartError);
+
+  if (!cartItem) {
+    throw new Error("Cart item not found");
+  }
+
+  const { data: product, error: productError } = await supabase
+    .from("customer_safe_products")
+    .select("id")
+    .eq("id", cartItem.product_id)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  throwIfError(productError);
+
+  if (!product) {
+    throw new Error("Product is no longer available");
+  }
+
+  const { data: inventory, error: inventoryError } = await supabase
+    .from("inventory")
+    .select("quantity, reserved_quantity")
+    .eq("product_id", cartItem.product_id)
+    .maybeSingle();
+
+  throwIfError(inventoryError);
+
+  const available = inventory ? inventory.quantity - inventory.reserved_quantity : 0;
+
+  if (quantity > available) {
+    throw new Error("Requested quantity exceeds available stock");
+  }
+
+  const { data, error } = await supabase
+    .from("cart_items")
+    .update({ quantity })
+    .eq("id", cartItemId)
+    .eq("customer_id", customerId)
+    .select("id, customer_id, product_id, quantity, created_at, updated_at")
+    .single();
+
+  throwIfError(error);
+  return data as CartItem;
+}
+
+export async function removeCartItem(cartItemId: string): Promise<void> {
+  const customerId = await getAuthenticatedCustomerId();
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from("cart_items")
+    .delete()
+    .eq("id", cartItemId)
+    .eq("customer_id", customerId);
+
+  throwIfError(error);
+}
+
+export async function clearCart(): Promise<void> {
+  const customerId = await getAuthenticatedCustomerId();
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from("cart_items")
+    .delete()
+    .eq("customer_id", customerId);
+
+  throwIfError(error);
 }

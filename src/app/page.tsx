@@ -1,8 +1,23 @@
 import Link from "next/link";
 
 import { ProductCard } from "@/components/product/ProductCard";
+import { getActiveCategories, getFeaturedProducts, getProductInventory } from "@/lib/marketplace/data";
 
-export default function Home() {
+export default async function Home() {
+  const [products, categories] = await Promise.all([
+    getFeaturedProducts(8),
+    getActiveCategories(),
+  ]);
+
+  const stockByProduct = new Map(
+    await Promise.all(
+      products.map(async (product) => [
+        product.id,
+        await getProductInventory(product.id),
+      ] as const)
+    )
+  );
+
   return (
     <div className="w-full">
       <section className="bg-gradient-to-r from-slate-900 to-slate-800 py-16 text-white md:py-24">

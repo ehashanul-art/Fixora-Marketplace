@@ -146,3 +146,22 @@ export interface ProductFilters {
   limit?: number;
   offset?: number;
 }
+
+export interface CartItem {
+  id: string;
+  customer_id: string;
+  product_id: string;
+  quantity: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CartItemWithProduct {
+  id: string;
+  customer_id: string;
+  product_id: string;
+  quantity: number;
+  created_at: string;
+  updated_at: string;
+  product: PublicProduct;
+}

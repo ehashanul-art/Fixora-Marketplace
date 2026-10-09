@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Header } from "./Header";
+import { CartCount } from "./CartCount";
 import { Footer } from "./Footer";
 
 interface MainLayoutProps {
@@ -9,7 +9,7 @@ interface MainLayoutProps {
 export function MainLayout({ children }: MainLayoutProps) {
   return (
     <div className="flex flex-col min-h-screen bg-white">
-      <Header />
+      <CartCount />
       <main className="flex-1">{children}</main>
       <Footer />
     </div>
