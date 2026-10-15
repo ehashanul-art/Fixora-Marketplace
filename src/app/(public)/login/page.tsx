@@ -7,7 +7,10 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { signInWithEmail } from "@/features/auth/auth";
+import {
+  resendSignupConfirmation,
+  signInWithEmail,
+} from "@/features/auth/auth";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { hasSupabasePublicEnv } from "@/lib/supabase/env";
 
@@ -19,6 +22,9 @@ const loginSchema = z.object({
 export default function LoginPage() {
   const router = useRouter();
   const [submitError, setSubmitError] = useState("");
+  const [showResendConfirmation, setShowResendConfirmation] = useState(false);
+  const [resendNotice, setResendNotice] = useState("");
+  const [isResending, setIsResending] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof loginSchema>>({
@@ -45,12 +51,29 @@ export default function LoginPage() {
 
   async function onSubmit(values: z.infer<typeof loginSchema>) {
     setSubmitError("");
+    setShowResendConfirmation(false);
+    setResendNotice("");
     setIsSubmitting(true);
 
     try {
       const { data, error } = await signInWithEmail(values.email, values.password);
 
       if (error) {
+        if (error.code === "email_not_confirmed") {
+          setSubmitError(
+            "আপনার email এখনো confirm হয়নি। নতুন confirmation link পাঠাতে নিচের button চাপুন।",
+          );
+          setShowResendConfirmation(true);
+          return;
+        }
+
+        if (error.code === "invalid_credentials") {
+          setSubmitError(
+            "Email বা password মিলছে না। Account তৈরি করার পর confirmation email এলে সেটি confirm করে তারপর লগইন করুন।",
+          );
+          return;
+        }
+
         setSubmitError(error.message || "Unable to sign in. Please try again.");
         return;
       }
@@ -68,6 +91,37 @@ export default function LoginPage() {
       );
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function onResendConfirmation() {
+    const isEmailValid = await form.trigger("email");
+    if (!isEmailValid) {
+      return;
+    }
+
+    setIsResending(true);
+    setSubmitError("");
+    setResendNotice("");
+
+    try {
+      const { error } = await resendSignupConfirmation(form.getValues("email"));
+      if (error) {
+        setSubmitError(error.message || "Confirmation email পাঠানো যায়নি। আবার চেষ্টা করুন।");
+        return;
+      }
+
+      setResendNotice(
+        "নতুন confirmation email পাঠানো হয়েছে। Inbox/Spam থেকে সবচেয়ে নতুন email খুলে link-এ একবার click করুন।",
+      );
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Confirmation email পাঠানো যায়নি। আবার চেষ্টা করুন।",
+      );
+    } finally {
+      setIsResending(false);
     }
   }
 
@@ -119,6 +173,26 @@ export default function LoginPage() {
           {submitError && (
             <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               {submitError}
+            </div>
+          )}
+
+          {showResendConfirmation && (
+            <button
+              type="button"
+              onClick={onResendConfirmation}
+              disabled={isResending}
+              className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isResending ? "পাঠানো হচ্ছে..." : "নতুন confirmation email পাঠান"}
+            </button>
+          )}
+
+          {resendNotice && (
+            <div
+              role="status"
+              className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900"
+            >
+              {resendNotice}
             </div>
           )}
 

@@ -38,6 +38,14 @@ export async function signInWithEmail(email: string, password: string) {
   });
 }
 
+export async function resendSignupConfirmation(email: string) {
+  ensureSupabaseAuthEnabled();
+  return createSupabaseBrowserClient().auth.resend({
+    type: "signup",
+    email,
+  });
+}
+
 export async function signOut() {
   ensureSupabaseAuthEnabled();
   return createSupabaseBrowserClient().auth.signOut();

@@ -26,6 +26,7 @@ const registerSchema = z
 export default function RegisterPage() {
   const router = useRouter();
   const [submitError, setSubmitError] = useState("");
+  const [registrationNotice, setRegistrationNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof registerSchema>>({
@@ -54,6 +55,7 @@ export default function RegisterPage() {
 
   async function onSubmit(values: z.infer<typeof registerSchema>) {
     setSubmitError("");
+    setRegistrationNotice("");
     setIsSubmitting(true);
 
     try {
@@ -74,7 +76,14 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push("/login");
+      if (data.user) {
+        setRegistrationNotice(
+          "আপনার account তৈরি হয়েছে। লগইন করার আগে আপনার email inbox-এ পাঠানো confirmation link-এ click করুন। Spam/Junk folder-ও দেখুন।",
+        );
+        return;
+      }
+
+      setSubmitError("Account তৈরি হয়নি। আবার চেষ্টা করুন।");
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : "Unable to create your account.",
@@ -166,6 +175,21 @@ export default function RegisterPage() {
           {submitError && (
             <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               {submitError}
+            </div>
+          )}
+
+          {registrationNotice && (
+            <div
+              role="status"
+              className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-900"
+            >
+              <p>{registrationNotice}</p>
+              <Link
+                href="/login"
+                className="mt-2 inline-block font-semibold underline"
+              >
+                Email confirm করার পর এখানে লগইন করুন
+              </Link>
             </div>
           )}
 

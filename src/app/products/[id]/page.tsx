@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { getProductBySlug, getProductInventory } from "@/lib/marketplace/data";
 import { AddToCartSection } from "@/components/product/AddToCartSection";
+import { formatMarketplacePrice } from "@/lib/marketplace/format";
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -37,7 +38,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           <h1 className="text-3xl font-bold text-slate-900 md:text-4xl">{product.name}</h1>
           {(product.brand || product.model) && <p className="mt-3 text-sm text-slate-500">{[product.brand, product.model].filter(Boolean).join(" · ")}</p>}
           <div className="mt-5 flex items-center gap-3">
-            <span className="text-2xl font-bold text-slate-900">${product.sell_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            <span className="text-2xl font-bold text-slate-900">{formatMarketplacePrice(product.sell_price)}</span>
             <span className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${stockClass}`}>{stockLabel}</span>
           </div>
           {product.description && <p className="mt-6 text-base leading-7 text-slate-600">{product.description}</p>}

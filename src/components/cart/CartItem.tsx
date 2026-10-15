@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Minus, Plus, Trash2, Loader2 } from "lucide-react";
 import { updateCartItemAction, removeCartItemAction } from "@/app/(customer)/cart/actions";
+import { formatMarketplacePrice } from "@/lib/marketplace/format";
 import type { CartItemWithProduct } from "@/lib/types/marketplace";
 
 interface CartItemProps {
@@ -61,9 +62,6 @@ export function CartItem({ item }: CartItemProps) {
     }
   }
 
-  const formatPrice = (price: number) =>
-    price.toLocaleString(undefined, { minimumFractionDigits: 2 });
-
   return (
     <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
       <div className="md:flex">
@@ -90,7 +88,7 @@ export function CartItem({ item }: CartItemProps) {
                 <p className="mt-1 text-sm text-slate-500">{[product.brand, product.model].filter(Boolean).join(" · ")}</p>
               )}
               {product.sku && <p className="mt-1 text-xs text-slate-400">SKU: {product.sku}</p>}
-              <p className="mt-2 text-lg font-bold text-slate-900">${formatPrice(product.sell_price)}</p>
+              <p className="mt-2 text-lg font-bold text-slate-900">{formatMarketplacePrice(product.sell_price)}</p>
             </div>
             <button
               type="button"
@@ -130,7 +128,7 @@ export function CartItem({ item }: CartItemProps) {
 
             <div className="text-right">
               <p className="text-sm text-slate-500">Line total</p>
-              <p className="font-bold text-slate-900">${formatPrice(lineTotal)}</p>
+              <p className="font-bold text-slate-900">{formatMarketplacePrice(lineTotal)}</p>
               {!product.is_active && (
                 <p className="mt-1 text-xs text-red-600">Product no longer available</p>
               )}

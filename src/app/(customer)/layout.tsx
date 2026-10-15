@@ -4,5 +4,5 @@ import type { ReactNode } from "react";
 
 export default async function CustomerLayout({ children }: { children: ReactNode }) {
   await requireAuthenticatedUser();
-  return <MainLayout>{children}</MainLayout>;
+  return <MainLayout showCartCount>{children}</MainLayout>;
 }

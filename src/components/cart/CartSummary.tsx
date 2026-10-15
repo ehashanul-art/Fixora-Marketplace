@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowRight } from "lucide-react";
+import { formatMarketplacePrice } from "@/lib/marketplace/format";
 
 interface CartSummaryProps {
   subtotal: number;
@@ -8,16 +9,13 @@ interface CartSummaryProps {
 }
 
 export function CartSummary({ subtotal, itemCount }: CartSummaryProps) {
-  const formatPrice = (price: number) =>
-    price.toLocaleString(undefined, { minimumFractionDigits: 2 });
-
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-5 md:p-6 sticky top-24">
       <h2 className="text-lg font-bold text-slate-900 mb-4">Order Summary</h2>
       <dl className="space-y-3 text-sm">
         <div className="flex justify-between">
           <dt className="text-slate-600">Subtotal</dt>
-          <dd className="font-medium text-slate-900">${formatPrice(subtotal)}</dd>
+          <dd className="font-medium text-slate-900">{formatMarketplacePrice(subtotal)}</dd>
         </div>
         <div className="flex justify-between">
           <dt className="text-slate-600">Items</dt>
@@ -25,7 +23,7 @@ export function CartSummary({ subtotal, itemCount }: CartSummaryProps) {
         </div>
         <div className="flex justify-between border-t border-slate-200 pt-3">
           <dt className="text-base font-semibold text-slate-900">Total</dt>
-          <dd className="text-base font-bold text-slate-900">${formatPrice(subtotal)}</dd>
+          <dd className="text-base font-bold text-slate-900">{formatMarketplacePrice(subtotal)}</dd>
         </div>
       </dl>
       <div className="mt-6 space-y-3">
